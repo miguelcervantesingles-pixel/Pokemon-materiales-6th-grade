@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon Material Quest 🏔️</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --poke-red: #E3350D;
+    --poke-yellow: #FFCB05;
+    --poke-blue: #003A70;
+    --poke-light: #3B4CCA;
+    --sky1: #87CEEB;
+    --sky2: #1a6edb;
+    --rock: #8B7355;
+    --snow: #f0f8ff;
+    --grass: #4CAF50;
+    --correct: #2ecc71;
+    --wrong: #e74c3c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(180deg, #0a0a2e 0%, #1a3a6e 40%, #87CEEB 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== SCREEN MANAGER ===== */
+  .screen { display: none; animation: fadeIn 0.5s ease; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ===== INTRO SCREEN ===== */
+  #screen-intro {
+    min-height: 100vh;
+    justify-content: center;
+    background: linear-gradient(180deg, #0a0a2e, #1a3a6e, #2d7be8, #87CEEB);
+    position: relative;
+    overflow: hidden;
+  }
+  .stars { position: absolute; top: 0; left: 0; width: 100%; height: 50%; }
+  .star { position: absolute; background: white; border-radius: 50%; animation: twinkle 2s infinite alternate; }
+  @keyframes twinkle { from { opacity: 0.3; } to { opacity: 1; } }
+  .mountain-bg {
+    position: absolute; bottom: 0; width: 100%;
+  }
+  .intro-content { position: relative; z-index: 10; text-align: center; padding: 20px; }
+  .game-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(18px, 4vw, 32px);
+    color: var(--poke-yellow);
+    text-shadow: 4px 4px 0 var(--poke-red), 8px 8px 0 rgba(0,0,0,0.3);
+    line-height: 1.6;
+    margin-bottom: 10px;
+    animation: bounce 1s infinite alternate;
+  }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+  .subtitle { color: white; font-size: 18px; font-weight: 700; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+  .pikachu-intro { font-size: 80px; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-15px) rotate(5deg); } }
+  .btn-start {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    background: var(--poke-yellow);
+    color: var(--poke-blue);
+    border: 4px solid var(--poke-blue);
+    padding: 15px 30px;
+    cursor: pointer;
+    border-radius: 8px;
+    margin-top: 20px;
+    transition: all 0.2s;
+    box-shadow: 4px 4px 0 var(--poke-blue);
+  }
+  .btn-start:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--poke-blue); background: #FFD700; }
+  .btn-start:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 var(--poke-blue); }
+
+  /* ===== MOUNTAIN GAME SCREEN ===== */
+  #screen-game {
+    min-height: 100vh;
+    width: 100%;
+    position: relative;
+  }
+  .mountain-scene {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .mountain-svg { position: absolute; bottom: 0; left: 0; width: 100%; }
+  .hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: rgba(0,30,80,0.9);
+    border-bottom: 3px solid var(--poke-yellow);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+  }
+  .hud-level { font-family: 'Press Start 2P', monospace; color: var(--poke-yellow); font-size: 10px; }
+  .hud-score { font-family: 'Press Start 2P', monospace; color: #2ecc71; font-size: 10px; }
+  .progress-bar-container { flex: 1; margin: 0 15px; background: rgba(255,255,255,0.2); border-radius: 10px; height: 12px; border: 2px solid var(--poke-yellow); }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--poke-yellow), #ff6b6b); border-radius: 8px; transition: width 0.5s ease; }
+  .trainer-sprite { font-size: 28px; position: absolute; transition: all 1s ease; z-index: 50; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5)); }
+
+  /* ===== QUESTION PANEL ===== */
+  .question-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(180deg, rgba(0,30,80,0.97), #001248);
+    border-top: 4px solid var(--poke-yellow);
+    padding: 20px;
+    z-index: 100;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .pokemon-speaker {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+  .pokemon-face { font-size: 50px; animation: wiggle 2s ease-in-out infinite; }
+  @keyframes wiggle { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+  .speech-bubble {
+    background: white;
+    border-radius: 15px 15px 15px 0;
+    padding: 12px 18px;
+    color: var(--poke-blue);
+    font-weight: 700;
+    font-size: 15px;
+    position: relative;
+    flex: 1;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+  }
+  .speech-bubble::before {
+    content: '';
+    position: absolute;
+    left: -12px; top: 15px;
+    border: 6px solid transparent;
+    border-right-color: white;
+  }
+  .question-text { color: white; font-size: 16px; font-weight: 900; margin-bottom: 15px; text-align: center; line-height: 1.4; }
+  .question-image { font-size: 60px; text-align: center; margin-bottom: 10px; }
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .option-btn {
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 12px 10px;
+    border-radius: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .option-btn:hover { background: rgba(255,203,5,0.3); border-color: var(--poke-yellow); transform: scale(1.02); }
+  .option-btn.correct { background: #1a5c2e; border-color: var(--poke-yellow); animation: correctPulse 0.5s ease; }
+  .option-btn.wrong { background: #5c1a1a; border-color: var(--wrong); animation: shake 0.4s ease; }
+  @keyframes correctPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+  .feedback-msg { text-align: center; font-size: 18px; font-weight: 900; padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
+  .feedback-msg.show { display: block; animation: popIn 0.3s ease; }
+  .feedback-correct { color: #2ecc71; }
+  .feedback-wrong { color: #e74c3c; }
+  @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .streak-badge {
+    position: fixed; top: 60px; right: 20px;
+    background: var(--poke-yellow); color: var(--poke-blue);
+    border-radius: 50%; width: 50px; height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Press Start 2P', monospace; font-size: 10px;
+    border: 3px solid var(--poke-blue);
+    z-index: 200; display: none;
+  }
+  .level-badge {
+    position: absolute;
+    background: var(--poke-yellow);
+    color: var(--poke-blue);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 2px solid var(--poke-blue);
+    white-space: nowrap;
+    z-index: 40;
+    animation: levelPulse 2s infinite;
+  }
+  @keyframes levelPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+  /* ===== MEMORY GAME ===== */
+  #screen-memory {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #1a0a3e, #2d1b69, #4a3a8a);
+    width: 100%;
+    padding: 20px;
+    align-items: center;
+  }
+  .memory-title {
+    font-family: 'Press Start 2P', monospace;
+    color: var(--poke-yellow);
+    font-size: clamp(12px, 3vw, 18px);
+    text-align: center;
+    margin-bottom: 5px;
+    text-shadow: 3px 3px 0 var(--poke-red);
+  }
+  .memory-sub { color: #aaa; font-size: 14px; text-align: center; margin-bottom: 20px; }
+  .memory-stats {
+    display: flex; gap: 20px; margin-bottom: 15px;
+    font-family: 'Press Start 2P', monospace; font-size: 9px;
+  }
+  .mem-stat { color: var(--poke-yellow); background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 8px; border: 2px solid var(--poke-yellow); }
+  .memory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    max-width: 700px;
+    width: 100%;
+  }
+  .mem-card {
+    aspect-ratio: 3/4;
+    cursor: pointer;
+    perspective: 600px;
+    min-height: 80px;
+  }
+  .mem-card-inner {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.5s ease;
+  }
+  .mem-card.flipped .mem-card-inner { transform: rotateY(180deg); }
+  .mem-card.matched .mem-card-inner { transform: rotateY(180deg); }
+  .mem-card.matched .mem-card-front { border-color: var(--poke-yellow) !important; box-shadow: 0 0 15px var(--poke-yellow); }
+  .mem-card-back, .mem-card-front {
+    position: absolute; width: 100%; height: 100%;
+    backface-visibility: hidden;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 8px;
+  }
+  .mem-card-back {
+    background: linear-gradient(135deg, var(--poke-red), #8B0000);
+    border: 3px solid var(--poke-yellow);
+    font-size: 30px;
+  }
+  .mem-card-back::after { content: '⊕'; font-size: 24px; color: var(--poke-yellow); }
+  .mem-card-front {
+    background: linear-gradient(135deg, #1a1a4e, #2d2d7a);
+    border: 3px solid #4a4a9a;
+    transform: rotateY(180deg);
+    flex-direction: column;
+    gap: 5px;
+  }
+  .card-emoji { font-size: 28px; }
+  .card-text { font-size: 11px; font-weight: 900; color: white; line-height: 1.2; }
+  .card-text.spanish { color: #aaa; font-size: 10px; }
+
+  /* ===== NAME SCREEN ===== */
+  #screen-name {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #0a1a3e, #1a3a6e);
+    justify-content: center;
+    padding: 30px;
+  }
+  .name-card {
+    background: rgba(255,255,255,0.05);
+    border: 3px solid var(--poke-yellow);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+  }
+  .name-title { font-family: 'Press Start 2P', monospace; color: var(--poke-yellow); font-size: 14px; margin-bottom: 10px; }
+  .name-pokemon { font-size: 70px; animation: float 3s infinite; margin: 15px 0; }
+  .name-input {
+    width: 100%;
+    padding: 15px;
+    border-radius: 10px;
+    border: 3px solid var(--poke-yellow);
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+    margin: 20px 0;
+  }
+  .name-input::placeholder { color: rgba(255,255,255,0.4); }
+  .name-input:focus { background: rgba(255,203,5,0.1); box-shadow: 0 0 15px rgba(255,203,5,0.3); }
+
+  /* ===== REPORT SCREEN ===== */
+  #screen-report {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #0a1a3e, #1a3a6e);
+    padding: 20px;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .report-card {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 650px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+  }
+  .report-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 8px;
+    background: linear-gradient(90deg, var(--poke-red), var(--poke-yellow), var(--poke-blue));
+  }
+  .report-header { text-align: center; margin-bottom: 25px; padding-top: 10px; }
+  .report-title { font-family: 'Press Start 2P', monospace; font-size: 14px; color: var(--poke-blue); }
+  .report-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
+  .report-student { font-size: 22px; font-weight: 900; color: var(--poke-blue); margin: 10px 0; }
+  .grade-circle {
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    margin: 20px auto;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative;
+  }
+  .grade-number { font-family: 'Press Start 2P', monospace; font-size: 42px; }
+  .grade-max { font-size: 14px; font-weight: 700; }
+  .grade-label { font-size: 12px; font-weight: 700; margin-top: 5px; }
+  .report-section { margin: 20px 0; }
+  .report-section-title { font-weight: 900; color: var(--poke-blue); font-size: 14px; border-bottom: 2px solid var(--poke-yellow); padding-bottom: 5px; margin-bottom: 12px; }
+  .report-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; border-radius: 8px; margin-bottom: 6px;
+    background: #f8f9fa;
+  }
+  .report-row-label { font-size: 13px; color: #555; }
+  .report-row-value { font-weight: 900; font-size: 14px; }
+  .report-row-value.good { color: var(--correct); }
+  .report-row-value.bad { color: var(--wrong); }
+  .stars-row { display: flex; gap: 5px; font-size: 24px; justify-content: center; margin: 10px 0; }
+  .report-footer { text-align: center; font-size: 11px; color: #999; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
+  .pokemon-stamp { font-size: 40px; position: absolute; bottom: 20px; right: 20px; opacity: 0.15; font-size: 80px; }
+  .btn-print {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    background: var(--poke-blue);
+    color: white;
+    border: 3px solid var(--poke-yellow);
+    padding: 12px 20px;
+    cursor: pointer;
+    border-radius: 8px;
+    margin-top: 20px;
+    transition: all 0.2s;
+    display: block;
+    width: 100%;
+  }
+  .btn-print:hover { background: var(--poke-light); transform: scale(1.02); }
+
+  /* Celebration */
+  .confetti-piece {
+    position: fixed;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    animation: confettiFall 3s linear forwards;
+    z-index: 9999;
+    pointer-events: none;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+  .level-complete {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.8);
+    display: flex; align-items: center; justify-content: center;
+    display: none;
+  }
+  .level-complete.show { display: flex; animation: fadeIn 0.3s; }
+  .level-complete-box {
+    background: linear-gradient(135deg, #1a3a6e, #003A70);
+    border: 4px solid var(--poke-yellow);
+    border-radius: 20px;
+    padding: 30px 40px;
+    text-align: center;
+    max-width: 350px;
+  }
+  .lc-pokemon { font-size: 70px; animation: bounce 0.5s infinite alternate; }
+  .lc-title { font-family: 'Press Start 2P', monospace; color: var(--poke-yellow); font-size: 14px; margin: 10px 0; }
+  .lc-text { color: white; font-size: 15px; margin-bottom: 15px; }
+  .btn-next {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    background: var(--poke-yellow);
+    color: var(--poke-blue);
+    border: 3px solid var(--poke-blue);
+    padding: 12px 20px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    box-shadow: 3px 3px 0 var(--poke-blue);
+  }
+  .btn-next:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--poke-blue); }
+
+  @media (max-width: 480px) {
+    .memory-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .card-emoji { font-size: 20px; }
+    .card-text { font-size: 9px; }
+    .options-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== INTRO ==================== -->
+<div id="screen-intro" class="screen active">
+  <div class="stars" id="stars"></div>
+  <svg class="mountain-bg" viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" style="position:absolute;bottom:0;left:0;width:100%;z-index:1">
+    <polygon points="0,300 200,80 400,300" fill="#5a7a3a"/>
+    <polygon points="100,300 350,20 600,300" fill="#4a6a2a"/>
+    <polygon points="300,300 550,50 800,300" fill="#6a8a4a"/>
+    <polygon points="250,300 500,10 750,300" fill="white" opacity="0.6"/>
+    <polygon points="300,300 500,30 700,300" fill="#8B7355" opacity="0.5"/>
+  </svg>
+  <div class="intro-content" style="padding-top:60px; z-index:10;">
+    <div class="pikachu-intro">⚡</div>
+    <div class="game-title">POKÉMON<br>MATERIAL<br>QUEST!</div>
+    <div class="subtitle">🏔️ ¡Escala la montaña aprendiendo materiales en inglés! 🏔️</div>
+    <div style="color:#aad4ff; font-size:14px; margin-bottom:5px;">Aprende: <strong style="color:var(--poke-yellow)">It is made of / They are made of</strong></div>
+    <div style="color:#aad4ff; font-size:13px; margin-bottom:25px;">🎯 3 niveles • 🧠 Memoria • 📊 Reporte Final</div>
+    <button class="btn-start" onclick="startGame()">▶ INICIAR AVENTURA</button>
+  </div>
+</div>
+
+<!-- ==================== GAME ==================== -->
+<div id="screen-game" class="screen">
+  <div class="hud">
+    <div class="hud-level" id="hud-level">LVL 1</div>
+    <div class="progress-bar-container"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+    <div class="hud-score" id="hud-score">⭐ 0</div>
+  </div>
+
+  <div class="mountain-scene" id="mountain-scene">
+    <svg viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:100%;height:100%;top:0;left:0">
+      <!-- Sky gradient -->
+      <defs>
+        <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#0a1040"/>
+          <stop offset="50%" style="stop-color:#1a6edb"/>
+          <stop offset="100%" style="stop-color:#87CEEB"/>
+        </linearGradient>
+        <linearGradient id="snowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:white"/>
+          <stop offset="100%" style="stop-color:#cce5ff"/>
+        </linearGradient>
+        <linearGradient id="rockGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#9a8a6a"/>
+          <stop offset="100%" style="stop-color:#6a5a3a"/>
+        </linearGradient>
+        <linearGradient id="grassGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#5a9a3a"/>
+          <stop offset="100%" style="stop-color:#3a7a1a"/>
+        </linearGradient>
+      </defs>
+      <!-- Background sky -->
+      <rect width="400" height="600" fill="url(#skyGrad)"/>
+      <!-- Stars -->
+      <circle cx="30" cy="30" r="1.5" fill="white" opacity="0.8"/>
+      <circle cx="80" cy="60" r="1" fill="white" opacity="0.7"/>
+      <circle cx="150" cy="20" r="2" fill="white" opacity="0.9"/>
+      <circle cx="250" cy="45" r="1.5" fill="white" opacity="0.8"/>
+      <circle cx="330" cy="25" r="1" fill="white" opacity="0.7"/>
+      <circle cx="370" cy="70" r="2" fill="white" opacity="0.6"/>
+      <!-- Moon -->
+      <circle cx="350" cy="50" r="20" fill="#FFFACD" opacity="0.9"/>
+      <circle cx="358" cy="44" r="16" fill="#1a3a6e" opacity="0.6"/>
+      <!-- Mountain base (grass) -->
+      <polygon points="0,600 0,420 200,500 400,420 400,600" fill="url(#grassGrad)"/>
+      <!-- Mountain body (rock) -->
+      <polygon points="50,500 200,100 350,500" fill="url(#rockGrad)"/>
+      <!-- Mountain snow cap -->
+      <polygon points="145,200 200,80 255,200" fill="url(#snowGrad)"/>
+      <polygon points="155,185 200,100 245,185" fill="white"/>
+      <!-- Path/trail -->
+      <path d="M 200 500 Q 185 420 175 360 Q 165 300 180 250 Q 190 210 200 180" stroke="#ffcc00" stroke-width="3" fill="none" stroke-dasharray="8,6" opacity="0.8"/>
+      <!-- Level flags -->
+      <g id="flag1">
+        <circle cx="175" cy="360" r="12" fill="#3B4CCA" stroke="gold" stroke-width="2"/>
+        <text x="175" y="365" text-anchor="middle" fill="gold" font-size="10" font-weight="bold">1</text>
+      </g>
+      <g id="flag2">
+        <circle cx="180" cy="270" r="12" fill="#E3350D" stroke="gold" stroke-width="2"/>
+        <text x="180" y="275" text-anchor="middle" fill="gold" font-size="10" font-weight="bold">2</text>
+      </g>
+      <g id="flag3">
+        <circle cx="200" cy="120" r="14" fill="#2ecc71" stroke="gold" stroke-width="3"/>
+        <text x="200" y="125" text-anchor="middle" fill="gold" font-size="11" font-weight="bold">3</text>
+      </g>
+      <!-- Trees -->
+      <text x="90" y="490" font-size="30" opacity="0.9">🌲</text>
+      <text x="280" y="490" font-size="25" opacity="0.9">🌲</text>
+      <text x="130" y="460" font-size="20" opacity="0.8">🌿</text>
+      <text x="250" y="460" font-size="18" opacity="0.8">🌿</text>
+      <!-- Clouds -->
+      <ellipse cx="80" cy="120" rx="40" ry="18" fill="white" opacity="0.7"/>
+      <ellipse cx="100" cy="112" rx="30" ry="15" fill="white" opacity="0.8"/>
+      <ellipse cx="320" cy="160" rx="35" ry="15" fill="white" opacity="0.6"/>
+      <!-- Pokémon NPCs on mountain -->
+      <text x="110" y="430" font-size="22">🦋</text>
+      <text x="290" y="380" font-size="20">🐦</text>
+      <text x="155" y="320" font-size="18">⚡</text>
+    </svg>
+    <!-- Trainer on mountain -->
+    <div class="trainer-sprite" id="trainer" style="bottom: 35%; left: calc(50% - 25px);">🧑‍🎒</div>
+    <!-- Level labels on mountain -->
+    <div class="level-badge" id="lbl1" style="bottom:calc(36% + 10px); left:calc(50% - 110px);">Base Camp</div>
+    <div class="level-badge" id="lbl2" style="bottom:calc(50% + 10px); left:calc(50% + 20px);">Mid Peak</div>
+    <div class="level-badge" id="lbl3" style="bottom:calc(68% + 10px); left:calc(50% - 80px); display:none;">🏔️ Summit!</div>
+  </div>
+
+  <!-- Question Panel -->
+  <div class="question-panel" id="question-panel">
+    <div class="pokemon-speaker">
+      <div class="pokemon-face" id="q-pokemon">🔴</div>
+      <div class="speech-bubble" id="q-instruction">¡Identifica de qué material está hecho!</div>
+    </div>
+    <div class="question-image" id="q-image">🎒</div>
+    <div class="question-text" id="q-text">Loading...</div>
+    <div class="options-grid" id="options-grid"></div>
+    <div class="feedback-msg" id="feedback-msg"></div>
+  </div>
+
+  <!-- Level Complete Modal -->
+  <div class="level-complete" id="level-complete">
+    <div class="level-complete-box">
+      <div class="lc-pokemon" id="lc-pokemon">⭐</div>
+      <div class="lc-title" id="lc-title">¡NIVEL COMPLETO!</div>
+      <div class="lc-text" id="lc-text">¡Excelente trabajo!</div>
+      <button class="btn-next" id="btn-next" onclick="nextLevel()">SIGUIENTE ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MEMORY ==================== -->
+<div id="screen-memory" class="screen">
+  <div class="memory-title">🧠 MEMORY CHALLENGE</div>
+  <div class="memory-sub">Empareja: objeto (español) ↔ material (inglés)</div>
+  <div class="memory-stats">
+    <div class="mem-stat">Intentos: <span id="mem-attempts">0</span></div>
+    <div class="mem-stat">Pares: <span id="mem-matched">0</span>/8</div>
+    <div class="mem-stat">⏱ <span id="mem-timer">0</span>s</div>
+  </div>
+  <div class="memory-grid" id="memory-grid"></div>
+</div>
+
+<!-- ==================== NAME ==================== -->
+<div id="screen-name" class="screen">
+  <div class="name-card">
+    <div class="name-pokemon">🏆</div>
+    <div class="name-title">¡FELICITACIONES!</div>
+    <div style="color:#aad4ff; margin:15px 0; font-size:15px; font-weight:700;">
+      ¡Llegaste a la cima y completaste todos los retos!<br>
+      <span style="color:var(--poke-yellow)">⚡ Eres un Maestro Pokémon de Materiales ⚡</span>
+    </div>
+    <div style="color:white; font-size:14px; margin-bottom:5px;">Escribe tu nombre para generar tu reporte:</div>
+    <input type="text" class="name-input" id="name-input" placeholder="Tu nombre aquí..." maxlength="40"/>
+    <button class="btn-start" onclick="generateReport()" style="font-size:11px; margin-top:5px;">📊 GENERAR REPORTE</button>
+  </div>
+</div>
+
+<!-- ==================== REPORT ==================== -->
+<div id="screen-report" class="screen">
+  <div class="report-card" id="report-card">
+    <div class="report-header">
+      <div style="font-size:40px; margin-bottom:5px;">🏔️⚡🎓</div>
+      <div class="report-title">REPORTE DE ACTIVIDAD</div>
+      <div class="report-subtitle">Pokémon Material Quest — English Materials Learning</div>
+      <div style="color:#999; font-size:12px;" id="report-date"></div>
+    </div>
+    <div class="report-student" id="report-student-name">Estudiante</div>
+    <div class="grade-circle" id="grade-circle">
+      <div class="grade-number" id="grade-number">10</div>
+      <div class="grade-max">/10</div>
+      <div class="grade-label" id="grade-label">⭐ EXCELENTE</div>
+    </div>
+    <div class="stars-row" id="stars-row"></div>
+
+    <div class="report-section">
+      <div class="report-section-title">📊 Resultados por Actividad</div>
+      <div class="report-row">
+        <div class="report-row-label">🏔️ Ejercicios de Escalada (Niveles 1-3)</div>
+        <div class="report-row-value good" id="rep-quiz-score">— / —</div>
+      </div>
+      <div class="report-row">
+        <div class="report-row-label">🧠 Juego de Memoria</div>
+        <div class="report-row-value good" id="rep-mem-score">— puntos</div>
+      </div>
+      <div class="report-row">
+        <div class="report-row-label">✅ Total de Respuestas Correctas</div>
+        <div class="report-row-value good" id="rep-correct">—</div>
+      </div>
+      <div class="report-row">
+        <div class="report-row-label">❌ Total de Respuestas Incorrectas</div>
+        <div class="report-row-value bad" id="rep-wrong">—</div>
+      </div>
+      <div class="report-row">
+        <div class="report-row-label">⏱ Tiempo en Memoria</div>
+        <div class="report-row-value" id="rep-time">—</div>
+      </div>
+    </div>
+
+    <div class="report-section">
+      <div class="report-section-title">📚 Vocabulario Practicado</div>
+      <div id="vocab-list" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+    </div>
+
+    <div class="report-section">
+      <div class="report-section-title">💬 Estructuras Practicadas</div>
+      <div style="background:#f0f8ff; border-left: 4px solid var(--poke-blue); padding: 12px; border-radius: 0 8px 8px 0; font-size:13px; color:#333; line-height:1.8;">
+        ✅ <strong>It is made of</strong> + material (objeto singular)<br>
+        ✅ <strong>They are made of</strong> + material (objetos plurales)
+      </div>
+    </div>
+
+    <div class="report-section">
+      <div class="report-section-title">🏅 Logros</div>
+      <div id="achievements" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+    </div>
+
+    <div class="report-footer">
+      Generado por Pokémon Material Quest · Inglés Interactivo<br>
+      <em>"It is made of... knowledge!"</em> ⚡
+    </div>
+    <div class="pokemon-stamp">🏆</div>
+    <button class="btn-print" onclick="window.print()">🖨️ IMPRIMIR / GUARDAR PDF</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const materials = [
+  { mat: "plastic", es: "plástico", emoji: "🧴" },
+  { mat: "metal", es: "metal", emoji: "⚙️" },
+  { mat: "wood", es: "madera", emoji: "🪵" },
+  { mat: "glass", es: "vidrio", emoji: "🪟" },
+  { mat: "rubber", es: "hule/goma", emoji: "🔵" },
+  { mat: "paper", es: "papel", emoji: "📄" },
+  { mat: "fabric", es: "tela", emoji: "🧶" },
+  { mat: "stone", es: "piedra", emoji: "🪨" },
+];
+
+const questions = [
+  // Level 1 — "It is made of" (singular)
+  { level: 1, type: "single", object: "a bottle", emoji: "🍶", material: "plastic", sentence: "It is made of plastic.", alt_materials: ["glass","metal","rubber"] },
+  { level: 1, type: "single", object: "a spoon", emoji: "🥄", material: "metal", sentence: "It is made of metal.", alt_materials: ["plastic","wood","glass"] },
+  { level: 1, type: "single", object: "a chair", emoji: "🪑", material: "wood", sentence: "It is made of wood.", alt_materials: ["metal","plastic","fabric"] },
+  { level: 1, type: "single", object: "a window", emoji: "🪟", material: "glass", sentence: "It is made of glass.", alt_materials: ["plastic","metal","stone"] },
+  { level: 1, type: "single", object: "a tire", emoji: "🛞", material: "rubber", sentence: "It is made of rubber.", alt_materials: ["plastic","metal","fabric"] },
+  // Level 2 — Mixed "It is made of" harder
+  { level: 2, type: "single", object: "a book", emoji: "📚", material: "paper", sentence: "It is made of paper.", alt_materials: ["plastic","fabric","wood"] },
+  { level: 2, type: "single", object: "a T-shirt", emoji: "👕", material: "fabric", sentence: "It is made of fabric.", alt_materials: ["paper","plastic","rubber"] },
+  { level: 2, type: "single", object: "a wall", emoji: "🧱", material: "stone", sentence: "It is made of stone.", alt_materials: ["metal","wood","glass"] },
+  { level: 2, type: "fillblank", object: "a ring", emoji: "💍", material: "metal", sentence: "A ring. It is made of ___.", alt_materials: ["plastic","wood","glass"] },
+  { level: 2, type: "fillblank", object: "a table", emoji: "🪵", material: "wood", sentence: "A table. It is made of ___.", alt_materials: ["metal","plastic","stone"] },
+  // Level 3 — "They are made of" (plural)
+  { level: 3, type: "plural", object: "shoes", emoji: "👟", material: "rubber", sentence: "They are made of rubber.", alt_materials: ["metal","glass","stone"] },
+  { level: 3, type: "plural", object: "glasses", emoji: "👓", material: "glass", sentence: "They are made of glass.", alt_materials: ["plastic","metal","wood"] },
+  { level: 3, type: "plural", object: "coins", emoji: "🪙", material: "metal", sentence: "They are made of metal.", alt_materials: ["plastic","stone","rubber"] },
+  { level: 3, type: "plural", object: "bags", emoji: "👜", material: "fabric", sentence: "They are made of fabric.", alt_materials: ["plastic","paper","rubber"] },
+  { level: 3, type: "choose", object: "bottles / coins", emoji: "🍶🪙", material: "plastic,metal", sentence: "Bottles: made of plastic. Coins: made of metal.", alt_materials: ["plastic","metal","wood","glass"] },
+];
+
+const pokemonByLevel = [
+  { emoji: "🐢", name: "Squirtle" },
+  { emoji: "🦎", name: "Charmander" },
+  { emoji: "🌿", name: "Bulbasaur" },
+];
+const pokemonMessages = [
+  "¡Vamos! ¿De qué está hecho?",
+  "¡Tú puedes, entrenador!",
+  "¡Identifica el material!",
+  "¡Piensa bien antes de responder!",
+  "¡Un paso más hacia la cima!",
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  currentLevel: 1,
+  questionIndex: 0,
+  score: 0,
+  totalCorrect: 0,
+  totalWrong: 0,
+  quizAnswers: [],
+  memAttempts: 0,
+  memMatched: 0,
+  memTime: 0,
+  memTimerInterval: null,
+  studentName: "",
+  answeredQuestions: [],
+};
+
+function getQuestionsForLevel(lvl) {
+  return questions.filter(q => q.level === lvl);
+}
+
+// ============================================================
+// SCREENS
+// ============================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// Intro stars
+(function createStars() {
+  const c = document.getElementById('stars');
+  if (!c) return;
+  for (let i = 0; i < 60; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${Math.random()*3+1}px;height:${Math.random()*3+1}px;animation-delay:${Math.random()*3}s;animation-duration:${Math.random()*2+1}s`;
+    c.appendChild(s);
+  }
+})();
+
+// ============================================================
+// GAME START
+// ============================================================
+function startGame() {
+  state.currentLevel = 1;
+  state.questionIndex = 0;
+  state.score = 0;
+  state.totalCorrect = 0;
+  state.totalWrong = 0;
+  state.quizAnswers = [];
+  showScreen('game');
+  loadQuestion();
+}
+
+function loadQuestion() {
+  const levelQs = getQuestionsForLevel(state.currentLevel);
+  if (state.questionIndex >= levelQs.length) {
+    showLevelComplete();
+    return;
+  }
+  const q = levelQs[state.questionIndex];
+  const total = questions.length;
+  const done = state.quizAnswers.length;
+  document.getElementById('progress-bar').style.width = (done / total * 100) + '%';
+  document.getElementById('hud-level').textContent = `LVL ${state.currentLevel}`;
+  document.getElementById('hud-score').textContent = `⭐ ${state.score}`;
+  const pk = pokemonByLevel[state.currentLevel - 1];
+  document.getElementById('q-pokemon').textContent = pk.emoji;
+  document.getElementById('q-instruction').textContent = pokemonMessages[Math.floor(Math.random() * pokemonMessages.length)];
+  document.getElementById('q-image').textContent = q.emoji;
+
+  let questionText = '';
+  if (q.type === 'single') {
+    questionText = `What is it made of?\n"${q.object.charAt(0).toUpperCase() + q.object.slice(1)}"`;
+  } else if (q.type === 'fillblank') {
+    questionText = `Complete: "${q.sentence}"`;
+  } else if (q.type === 'plural') {
+    questionText = `What are they made of?\n"${q.object.charAt(0).toUpperCase() + q.object.slice(1)}"`;
+  } else if (q.type === 'choose') {
+    questionText = `Match each object to its material:\n${q.object}`;
+  }
+  document.getElementById('q-text').textContent = questionText;
+
+  // Build options
+  const allOptions = [q.material.split(',')[0], ...q.alt_materials].slice(0, 4);
+  const shuffled = allOptions.sort(() => Math.random() - 0.5);
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  const feedback = document.getElementById('feedback-msg');
+  feedback.className = 'feedback-msg';
+  feedback.textContent = '';
+
+  shuffled.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    const matObj = materials.find(m => m.mat === opt);
+    btn.innerHTML = `${matObj ? matObj.emoji : '❓'} ${opt.toUpperCase()}<br><small style="opacity:0.7">${matObj ? matObj.es : ''}</small>`;
+    btn.onclick = () => handleAnswer(opt, q, btn);
+    grid.appendChild(btn);
+  });
+}
+
+function handleAnswer(chosen, q, btn) {
+  const correct = q.material.includes(chosen);
+  const allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(b => b.disabled = true);
+
+  const feedback = document.getElementById('feedback-msg');
+  if (correct) {
+    btn.classList.add('correct');
+    state.score += 10;
+    state.totalCorrect++;
+    feedback.textContent = `✅ ¡Correcto! ${q.sentence}`;
+    feedback.className = 'feedback-msg show feedback-correct';
+    launchMiniConfetti();
+  } else {
+    btn.classList.add('wrong');
+    state.totalWrong++;
+    const correctBtn = Array.from(allBtns).find(b => b.textContent.toLowerCase().includes(q.material.split(',')[0]));
+    if (correctBtn) correctBtn.classList.add('correct');
+    feedback.textContent = `❌ Incorrecto. ${q.sentence}`;
+    feedback.className = 'feedback-msg show feedback-wrong';
+  }
+  document.getElementById('hud-score').textContent = `⭐ ${state.score}`;
+  state.quizAnswers.push({ q, chosen, correct });
+
+  setTimeout(() => {
+    state.questionIndex++;
+    loadQuestion();
+  }, 1800);
+}
+
+function showLevelComplete() {
+  const levelData = [
+    { pokemon: "🐢", msg: "¡Base Camp conquistado!\n¡Aprendiste 'It is made of'!" },
+    { pokemon: "🦎", msg: "¡Mid Peak alcanzado!\n¡Dominas el vocabulario!" },
+    { pokemon: "🌿", msg: "¡CIMA CONQUISTADA!\n¡Eres un maestro de materiales!" },
+  ];
+  const d = levelData[state.currentLevel - 1];
+  document.getElementById('lc-pokemon').textContent = d.pokemon;
+  document.getElementById('lc-title').textContent = state.currentLevel < 3 ? '¡NIVEL COMPLETO!' : '🏆 ¡CUMBRE!';
+  document.getElementById('lc-text').textContent = d.msg;
+  const btnNext = document.getElementById('btn-next');
+  btnNext.textContent = state.currentLevel < 3 ? 'SIGUIENTE NIVEL ▶' : '🧠 JUEGO DE MEMORIA';
+  document.getElementById('level-complete').classList.add('show');
+  launchConfetti();
+
+  // Move trainer up mountain
+  const trainer = document.getElementById('trainer');
+  if (state.currentLevel === 1) trainer.style.bottom = '48%';
+  else if (state.currentLevel === 2) trainer.style.bottom = '65%';
+  else trainer.style.bottom = '78%';
+}
+
+function nextLevel() {
+  document.getElementById('level-complete').classList.remove('show');
+  if (state.currentLevel < 3) {
+    state.currentLevel++;
+    state.questionIndex = 0;
+    if (state.currentLevel === 3) {
+      document.getElementById('lbl3').style.display = 'block';
+    }
+    loadQuestion();
+  } else {
+    startMemoryGame();
+  }
+}
+
+// ============================================================
+// MEMORY GAME
+// ============================================================
+const memoryPairs = [
+  { id: 'wood', spanish: '🪑 Silla', english: '🪵 WOOD', emoji: '🪵', type_a: 'spanish', type_b: 'english' },
+  { id: 'glass', spanish: '🪟 Ventana', english: '🪟 GLASS', emoji: '🪟', type_a: 'spanish', type_b: 'english' },
+  { id: 'metal', spanish: '🪙 Monedas', english: '⚙️ METAL', emoji: '⚙️', type_a: 'spanish', type_b: 'english' },
+  { id: 'plastic', spanish: '🍶 Botella', english: '🧴 PLASTIC', emoji: '🧴', type_a: 'spanish', type_b: 'english' },
+  { id: 'fabric', spanish: '👕 Playera', english: '🧶 FABRIC', emoji: '🧶', type_a: 'spanish', type_b: 'english' },
+  { id: 'rubber', spanish: '🛞 Llanta', english: '🔵 RUBBER', emoji: '🔵', type_a: 'spanish', type_b: 'english' },
+  { id: 'paper', spanish: '📚 Libro', english: '📄 PAPER', emoji: '📄', type_a: 'spanish', type_b: 'english' },
+  { id: 'stone', spanish: '🧱 Pared', english: '🪨 STONE', emoji: '🪨', type_a: 'spanish', type_b: 'english' },
+];
+let memCards = [], flippedCards = [], matchedPairs = 0, canFlip = true;
+
+function startMemoryGame() {
+  showScreen('memory');
+  state.memAttempts = 0;
+  state.memMatched = 0;
+  state.memTime = 0;
+  matchedPairs = 0;
+  flippedCards = [];
+  memCards = [];
+
+  // Build card array: for each pair, one spanish card + one english card
+  const allCards = [];
+  memoryPairs.forEach(pair => {
+    allCards.push({ pairId: pair.id, label: pair.spanish, isSpanish: true });
+    allCards.push({ pairId: pair.id, label: pair.english, isSpanish: false });
+  });
+  // Shuffle
+  allCards.sort(() => Math.random() - 0.5);
+
+  const grid = document.getElementById('memory-grid');
+  grid.innerHTML = '';
+  document.getElementById('mem-attempts').textContent = '0';
+  document.getElementById('mem-matched').textContent = '0';
+  document.getElementById('mem-timer').textContent = '0';
+
+  if (state.memTimerInterval) clearInterval(state.memTimerInterval);
+  state.memTimerInterval = setInterval(() => {
+    state.memTime++;
+    document.getElementById('mem-timer').textContent = state.memTime;
+  }, 1000);
+
+  allCards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'mem-card';
+    el.dataset.index = i;
+    el.dataset.pairId = card.pairId;
+    el.dataset.isSpanish = card.isSpanish;
+    el.innerHTML = `
+      <div class="mem-card-inner">
+        <div class="mem-card-back"></div>
+        <div class="mem-card-front">
+          <div class="card-emoji">${card.label.split(' ')[0]}</div>
+          <div class="card-text ${card.isSpanish ? 'spanish' : ''}">${card.label.split(' ').slice(1).join(' ')}</div>
+          <div style="font-size:9px; color:${card.isSpanish ? '#aaa' : 'var(--poke-yellow)'}; font-weight:700;">${card.isSpanish ? 'ES' : 'EN'}</div>
+        </div>
+      </div>`;
+    el.onclick = () => flipMemCard(el);
+    grid.appendChild(el);
+    memCards.push({ el, card });
+  });
+}
+
+function flipMemCard(el) {
+  if (!canFlip) return;
+  if (el.classList.contains('flipped') || el.classList.contains('matched')) return;
+  el.classList.add('flipped');
+  flippedCards.push(el);
+  if (flippedCards.length === 2) {
+    state.memAttempts++;
+    document.getElementById('mem-attempts').textContent = state.memAttempts;
+    canFlip = false;
+    checkMemMatch();
+  }
+}
+
+function checkMemMatch() {
+  const [a, b] = flippedCards;
+  const aId = a.dataset.pairId, bId = b.dataset.pairId;
+  const aSpanish = a.dataset.isSpanish === 'true', bSpanish = b.dataset.isSpanish === 'true';
+  // Match: same pairId but different type (one spanish, one english)
+  const isMatch = aId === bId && aSpanish !== bSpanish;
+  setTimeout(() => {
+    if (isMatch) {
+      a.classList.add('matched');
+      b.classList.add('matched');
+      matchedPairs++;
+      state.memMatched = matchedPairs;
+      document.getElementById('mem-matched').textContent = matchedPairs;
+      if (matchedPairs === memoryPairs.length) {
+        clearInterval(state.memTimerInterval);
+        launchConfetti();
+        setTimeout(goToName, 1200);
+      }
+    } else {
+      a.classList.remove('flipped');
+      b.classList.remove('flipped');
+    }
+    flippedCards = [];
+    canFlip = true;
+  }, 900);
+}
+
+// ============================================================
+// NAME & REPORT
+// ============================================================
+function goToName() {
+  showScreen('name');
+}
+
+function generateReport() {
+  const name = document.getElementById('name-input').value.trim() || 'Estudiante';
+  state.studentName = name;
+  showScreen('report');
+  buildReport();
+  launchConfetti();
+}
+
+function buildReport() {
+  // Date
+  document.getElementById('report-date').textContent = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('report-student-name').textContent = '👤 ' + state.studentName;
+
+  // Calculate grade — basada 100% en aciertos del quiz
+  const quizTotal = questions.length;
+  const quizCorrect = state.totalCorrect;
+  const gradeNum = Math.round((quizCorrect / quizTotal) * 10 * 10) / 10; // redondea a 1 decimal
+  const grade = Number.isInteger(gradeNum) ? gradeNum.toString() : gradeNum.toFixed(1);
+
+  document.getElementById('grade-number').textContent = grade;
+  document.getElementById('rep-quiz-score').textContent = `${quizCorrect} / ${quizTotal}`;
+  document.getElementById('rep-mem-score').textContent = `${state.memAttempts} intentos`;
+  document.getElementById('rep-correct').textContent = `${state.totalCorrect} correctas`;
+  document.getElementById('rep-wrong').textContent = `${state.totalWrong} incorrectas`;
+  document.getElementById('rep-time').textContent = `${state.memTime} segundos`;
+
+  // Grade color
+  const gc = document.getElementById('grade-circle');
+  let gradeColor, gradeEmoji, gradeText;
+  if (gradeNum >= 9) { gradeColor = '#2ecc71'; gradeEmoji = '🏆'; gradeText = 'EXCELENTE'; }
+  else if (gradeNum >= 7) { gradeColor = '#f39c12'; gradeEmoji = '⭐'; gradeText = 'MUY BIEN'; }
+  else if (gradeNum >= 6) { gradeColor = '#e67e22'; gradeEmoji = '👍'; gradeText = 'BIEN'; }
+  else { gradeColor = '#e74c3c'; gradeEmoji = '📚'; gradeText = 'SIGUE PRACTICANDO'; }
+  gc.style.background = gradeColor;
+  gc.style.boxShadow = `0 0 30px ${gradeColor}88, 0 0 60px ${gradeColor}44`;
+  gc.style.border = `6px solid white`;
+  document.getElementById('grade-number').style.color = 'white';
+  document.getElementById('grade-number').style.textShadow = '2px 2px 4px rgba(0,0,0,0.3)';
+  document.getElementById('grade-label').style.color = 'white';
+  document.getElementById('grade-label').textContent = gradeEmoji + ' ' + gradeText;
+
+  // Stars
+  const starsEl = document.getElementById('stars-row');
+  const starCount = Math.round(gradeNum / 2);
+  starsEl.textContent = '⭐'.repeat(starCount) + '☆'.repeat(5 - starCount);
+
+  // Vocab
+  const vocab = document.getElementById('vocab-list');
+  materials.forEach(m => {
+    const tag = document.createElement('div');
+    tag.style.cssText = 'background:#e8f4fd;border:2px solid #3B4CCA;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700;color:#003A70;';
+    tag.textContent = `${m.emoji} ${m.mat} = ${m.es}`;
+    vocab.appendChild(tag);
+  });
+
+  // Achievements
+  const ach = document.getElementById('achievements');
+  const badges = [];
+  if (state.totalWrong === 0) badges.push({ e: '🏅', t: '¡Sin errores!' });
+  if (gradeNum >= 9) badges.push({ e: '🏆', t: 'Maestro Pokémon' });
+  if (gradeNum >= 7) badges.push({ e: '⭐', t: 'Gran escalador' });
+  badges.push({ e: '🏔️', t: '¡Llegó a la cima!' });
+  badges.push({ e: '🧠', t: 'Jugó memoria' });
+  if (state.memAttempts <= memoryPairs.length + 3) badges.push({ e: '🎯', t: 'Memoria perfecta' });
+  badges.forEach(b => {
+    const el = document.createElement('div');
+    el.style.cssText = 'background:#fff8dc;border:2px solid #f39c12;border-radius:10px;padding:6px 10px;font-size:12px;font-weight:700;color:#8B6914;';
+    el.textContent = `${b.e} ${b.t}`;
+    ach.appendChild(el);
+  });
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+function launchConfetti() {
+  const colors = ['#FFCB05','#E3350D','#3B4CCA','#2ecc71','#ff6b6b','white'];
+  for (let i = 0; i < 60; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.cssText = `
+      left: ${Math.random()*100}vw;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      width: ${Math.random()*8+5}px;
+      height: ${Math.random()*8+5}px;
+      animation-delay: ${Math.random()*1}s;
+      animation-duration: ${Math.random()*1.5+2}s;
+    `;
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 3500);
+  }
+}
+function launchMiniConfetti() {
+  const colors = ['#FFCB05','#2ecc71','white'];
+  for (let i = 0; i < 15; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.cssText = `
+      left: ${30 + Math.random()*40}vw;
+      bottom: 35%;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      width: ${Math.random()*5+3}px;
+      height: ${Math.random()*5+3}px;
+      animation-delay: ${Math.random()*0.3}s;
+      animation-duration: ${Math.random()*1+1}s;
+    `;
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 2000);
+  }
+}
+</script>
+</body>
+</html>
